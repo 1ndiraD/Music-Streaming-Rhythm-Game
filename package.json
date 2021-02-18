@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "arraybuffer-to-audiobuffer": "^0.0.5",
+    "audio-context": "^1.0.3",
+    "audio-generator": "^2.1.2",
+    "web-audio-stream": "^3.0.1"
+  }
+}
