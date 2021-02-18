@@ -1,0 +1,25 @@
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <title>Playing Chunked Music</title>
+  <h1>Playing Chunked Music</h1>
+</head>
+<body>
+  <script type="text/javascript" src="eventtarget.js"></script>
+  <script type="text/javascript" src="mp3chunksplayer.js"></script>
+  <script type="text/javascript">
+
+    if (!window.requestAnimationFrame) {
+      document.body.innerHTML ='<div id="error">I\'m sorry but you need Chrome 24+</div>';
+    } else {
+
+      // On window load initialize the class
+      window.addEventListener('load', function() {
+
+        let pl = new MP3ChunksPlayer().init();
+
+      }, false);
+    }
+  </script>
+</body>
+</html>
