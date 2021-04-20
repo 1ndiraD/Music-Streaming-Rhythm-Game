@@ -1,114 +1,157 @@
 console.log("are yummy");
 
-let MP3ChunksPlayer = function() {
+let StreamingChunksPlayer = function() {
 
     EventTarget.call(this);
 
     let _activeBuffer;
-    let _totalChunksLoaded = 0;
+    let _totalChunksLoaded;
     let _context;
     let _audioBuffer;
     let _audioSource;
     let _analyser;
-    let i = 0;
 
-    fetch("https://streams.wtju.net:8443/wtju-opus-256.ogg").then((response) => {
-        console.log(response);
+    //const url = "https://streams.wtju.net:8443/wtju-opus-256.ogg";
+    //const url = "https://streams.wtju.net:8443/wtjx-128.mp3";
+    const url = "http://muzaiko.info/public/sondosieroj/programero812.ogg";
+    const worker = new Worker("bufferWorker.js");
 
-        const reader = response.body.getReader();
-        const stream = new ReadableStream({
+    this.init = function() {
+        worker.postMessage(url);
+    };
 
-            start(controller) {
+    let _initializeWebAudio = function() { //used in onChunkLoaded
+        _context = new AudioContext();
+        _analyser = _context.createAnalyser();
+        _analyser.fftSize = 2048;
+    };
 
-                function push() {
+    worker.onmessage = function(event) {
+        //console.log("Message received from worker:");
 
-                    reader.read().then(({done, value}) => {
-                        console.log(value);
+        _activeBuffer = event.data[0];
+        _totalChunksLoaded = event.data[1];
 
-                        let _appendBuffer = function(buffer1, buffer2) {
-                            let tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-                            let buff1 = new Uint8Array(buffer1);
-                            let buff2 = new Uint8Array(buffer2);
-                            tmp.set(buff1, 0);
-                            tmp.set(buff2, buffer1.byteLength);
-                            return tmp.buffer;
-                        };
+        if (_totalChunksLoaded === 0) {
+            _initializeWebAudio();
+            console.log("initialized web audio");
+        }
 
-                        let _initializeWebAudio = function() {
-                            _context = new AudioContext();
-                            _analyser = _context.createAnalyser();
-                            _analyser.fftSize = 2048;
-                        };
+        console.log("active:", _activeBuffer)
 
-                        let _play = function() {
-                            let scheduledTime = 0.015;
-
-                            try {
-                                _audioSource.stop(scheduledTime);
-                            } catch (e) {}
-
-                            _audioSource = _context.createBufferSource();
-                            _audioSource.buffer = _audioBuffer;
-                            _audioSource.connect(_analyser);
-                            _audioSource.connect(_context.destination);
-                            let currentTime = _context.currentTime + 0.010 || 0;
-                            _audioSource.start(scheduledTime - 0.005, currentTime, _audioBuffer.duration - currentTime);
-                            _audioSource.playbackRate.value = 1;
-                            console.log("AudioBuffer is replaced!");
-                        };
-
-                        let _onChunkLoaded = function() {
-                            console.log("Chunk loaded!");
-                            if (_totalChunksLoaded === 0) {
-                                _initializeWebAudio();
-                                _activeBuffer = _request.response;
-                            } else {
-                                console.log("Chunk is appended!");
-                                _activeBuffer = _appendBuffer(_activeBuffer, _request.response);
-                            }
-
-                            _context.decodeAudioData(_activeBuffer, function(buf) {
-                                console.log("AudioData decoded!");
-                                _audioBuffer = buf;
-                                _play();
-                            });
-
-                            _totalChunksLoaded++;
-                        };
-
-                        let _loadChunk = function(index) {
-                            console.log("Loading chunk ", _files[index], " ...");
-                            //_request.open('GET', 'chunks/' + _files[index], true);
-                            //_request.send();
-                        };
-
-                        this.init = function() {
-                            console.log("MP3ChunksPlayer initialized!");
-
-                            //_request.responseType = 'arraybuffer';
-                            //_request.addEventListener('load', _onChunkLoaded, false);
-
-                            _loadChunk(_totalChunksLoaded);
-
-                            return this;
-                        };
-                        if (i < 10) {
-                            console.log("Finished iteration", i);
-                            i++;
-                            push();
-                        }
-                        //push();
-                    }).catch((err) => {
-                        console.error("Error - inner");
-                        console.error(err);
-                    });
-                };
-                push();
-            }
+        _context.decodeAudioData(_activeBuffer, function(buf) {
+            _audioBuffer = buf;
+            console.log("audio:", _audioBuffer);
+            console.log(_audioBuffer.getChannelData(0));
+            _play();
         });
-        return new Response(stream, {header: {"Content-Type": "text/html"}});
-    }).catch((err) => {
-        console.error("Error - outer");
-        console.error(err);
-    });
+
+        //else {
+        /*_audioBuffer = _context.createBuffer(1, _activeBuffer.byteLength / 32, _context.sampleRate);
+
+            console.log("active:", _activeBuffer);
+            const data = new Uint8Array(_activeBuffer);
+            const l = data.length;
+            let out = new Float32Array(l);
+            for (let i = 0; i < l; i++) {
+                out[i] = (data[i] - 128) / 128.0;
+            }
+            _audioBuffer.copyToChannel(out, 0, 0);
+            console.log(_audioBuffer.copyToChannel(out, 0, 0));
+            console.log(_audioBuffer.getChannelData(0));*/
+
+        /*console.log("active:", _activeBuffer)
+
+            _context.decodeAudioData(_activeBuffer, function(buf) {
+                _audioBuffer = buf;
+                console.log("audio:", _audioBuffer);
+                console.log(_audioBuffer.getChannelData(0));
+                _play();
+            });*/
+
+        //console.log("AudioData decoded!", _audioBuffer)
+
+        //_play();
+        //}
+
+    };
+
+    let _play = function() { //used in onChunkLoaded
+        let currentTime = _context.currentTime + 0.010 || 0;
+        console.log("current time:", currentTime);
+
+        //let time = currentTime;
+
+        let scheduledTime = 0.015;
+
+        try {
+            _audioSource.stop(scheduledTime);
+        } catch (e) {}
+
+        _audioSource = _context.createBufferSource();
+        _audioSource.buffer = _audioBuffer;
+        _audioSource.connect(_analyser);
+        _audioSource.connect(_context.destination);
+        _audioSource.playbackRate.value = 1;
+
+        ///console.log("time:", _audioBuffer.duration, currentTime, _audioBuffer.duration - currentTime ? _audioBuffer.duration : _audioBuffer.duration - currentTime);
+
+        console.log("audiobuffer duration:", _audioBuffer.duration);
+
+        //_audioSource.start(_context.currentTime, 0);
+
+        console.log("time", currentTime);
+
+        console.log("buffer start time", _audioBuffer.duration - currentTime < 0 ? 0 : scheduledTime - 0.005);
+        console.log("duration param:", _audioBuffer.duration - currentTime);
+        console.log("offset by", _audioBuffer.duration - currentTime < 0 ? 0 : currentTime);
+        //_audioSource.start(scheduledTime - 0.005, currentTime, _audioBuffer.duration - currentTime);
+
+        //_audioSource.start(scheduledTime - 0.005, currentTime, _audioBuffer.duration - currentTime < 0 ? _audioBuffer.duration : _audiobuffer.duration - currentTime);
+
+        _audioSource.start(_audioBuffer.duration - currentTime < 0 ? 0 : scheduledTime - 0.005, _audioBuffer.duration - currentTime < 0 ? 0 : currentTime, _audioBuffer.duration - currentTime < 0 ? _audioBuffer.duration : _audioBuffer.duration - currentTime);
+        /*_audioSource.start(_audioBuffer.duration - time < 0 ? 0 : scheduledTime - 0.005, _audioBuffer.duration - time < 0 ? 0 : time, _audioBuffer.duration - time < 0 ? _audioBuffer.duration : _audioBuffer.duration - time);*/
+
+        //time = currentTime;
+
+        //console.log("AudioBuffer is replaced!");
+    };
+
+    /*let _onChunkLoaded = function(_value) { //used in this.init
+        console.log("Chunk loaded!");
+//console.log("Chunk loaded!", _totalChunksLoaded, _activeBuffer, _value);
+        if (_totalChunksLoaded === 0) {
+            _initializeWebAudio();
+            _activeBuffer = _value.buffer;
+            ///console.log("activebuffer:", _activeBuffer);
+        }
+        else {
+            console.log("Chunk is appended!");
+///_activeBuffer = _appendBuffer(_activeBuffer, _value.buffer);
+
+            console.log("Appending buffer!");
+///console.log("activebuffer:", _activeBuffer);
+        }*/
+
+///console.log(_activeBuffer.byteLength, _context.sampleRate, "length:", _activeBuffer.byteLength / 32);
+//console.log(_activeBuffer.byteLength, _context.sampleRate, "length:", _activeBuffer.byteLength / 16);
+///_audioBuffer = _context.createBuffer(1, _activeBuffer.byteLength / 32, _context.sampleRate);
+//_audioBuffer = _context.createBuffer(2, _activeBuffer.byteLength / 16, _context.sampleRate);
+
+/*console.log("active:", _activeBuffer);
+        const data = new Uint8Array(_activeBuffer);
+        const l = data.length;
+        let out = new Float32Array(l);
+        for (let i = 0; i < l; i++) {
+            out[i] = (data[i] - 128) / 128.0;
+        }
+        _audioBuffer.copyToChannel(out, 0, 0);
+
+        console.log("AudioData decoded!", _audioBuffer);
+        console.log("channel 1", _audioBuffer.getChannelData(0));
+
+        _play();
+
+//_totalChunksLoaded++;
+    };*/
 };
