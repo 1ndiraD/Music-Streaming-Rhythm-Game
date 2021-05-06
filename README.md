@@ -17,3 +17,4 @@ Thanks to Nathan Moore and Thodoris Tsiridis
 ## Project Status
 
 Wasn't able to finish the full game, but was able to get chunked audio to play from the stream.
+Was working on music analysis before senior year ended.

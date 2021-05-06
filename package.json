@@ -3,7 +3,9 @@
     "arraybuffer-to-audiobuffer": "^0.0.5",
     "audio-context": "^1.0.3",
     "audio-generator": "^2.1.2",
-    "web-audio-stream": "^3.0.1"
+    "clubber": "^1.7.1",
+    "web-audio-stream": "^3.0.1",
+    "webworkify": "^1.5.0"
   },
   "devDependencies": {
     "esmify": "^2.1.1",
