@@ -1,114 +1,72 @@
-console.log("are yummy");
+console.log("are gummy");
 
-let MP3ChunksPlayer = function() {
+let StreamingChunksPlayer = function() {
 
     EventTarget.call(this);
 
     let _activeBuffer;
-    let _totalChunksLoaded = 0;
+    let _totalChunksLoaded;
     let _context;
     let _audioBuffer;
     let _audioSource;
     let _analyser;
-    let i = 0;
 
-    fetch("https://streams.wtju.net:8443/wtju-opus-256.ogg").then((response) => {
-        console.log(response);
+    const url = "https://streams.wtju.net:8443/wtju-opus-256.ogg";
 
-        const reader = response.body.getReader();
-        const stream = new ReadableStream({
+    const bufferWorker = new Worker("bufferWorker.js");
 
-            start(controller) {
+    this.init = function() {
+        bufferWorker.postMessage(url);
+    };
 
-                function push() {
+    let _initializeWebAudio = function() {
+        _context = new AudioContext();
+        _analyser = _context.createAnalyser();
+        _analyser.fftSize = 2048;
+    };
 
-                    reader.read().then(({done, value}) => {
-                        console.log(value);
+    bufferWorker.onmessage = function(event) {
+        _activeBuffer = event.data[0];
+        _totalChunksLoaded = event.data[1];
 
-                        let _appendBuffer = function(buffer1, buffer2) {
-                            let tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-                            let buff1 = new Uint8Array(buffer1);
-                            let buff2 = new Uint8Array(buffer2);
-                            tmp.set(buff1, 0);
-                            tmp.set(buff2, buffer1.byteLength);
-                            return tmp.buffer;
-                        };
+        if (_totalChunksLoaded === 100) {
+            _initializeWebAudio();
+            console.log("initialized web audio");
+        }
+        else {
 
-                        let _initializeWebAudio = function() {
-                            _context = new AudioContext();
-                            _analyser = _context.createAnalyser();
-                            _analyser.fftSize = 2048;
-                        };
+            console.log("active:", _activeBuffer)
 
-                        let _play = function() {
-                            let scheduledTime = 0.015;
+            _context.decodeAudioData(_activeBuffer, function(buf) {
+                _audioBuffer = buf;
+                console.log("audio:", _audioBuffer);
+                console.log(_audioBuffer.getChannelData(0));
+                _play();
+            });
+        }
+    };
 
-                            try {
-                                _audioSource.stop(scheduledTime);
-                            } catch (e) {}
+    let _play = function() {
+        let currentTime = _context.currentTime + 0.010 || 0;
+        console.log("current time:", currentTime);
 
-                            _audioSource = _context.createBufferSource();
-                            _audioSource.buffer = _audioBuffer;
-                            _audioSource.connect(_analyser);
-                            _audioSource.connect(_context.destination);
-                            let currentTime = _context.currentTime + 0.010 || 0;
-                            _audioSource.start(scheduledTime - 0.005, currentTime, _audioBuffer.duration - currentTime);
-                            _audioSource.playbackRate.value = 1;
-                            console.log("AudioBuffer is replaced!");
-                        };
+        let scheduledTime = 0.015;
 
-                        let _onChunkLoaded = function() {
-                            console.log("Chunk loaded!");
-                            if (_totalChunksLoaded === 0) {
-                                _initializeWebAudio();
-                                _activeBuffer = _request.response;
-                            } else {
-                                console.log("Chunk is appended!");
-                                _activeBuffer = _appendBuffer(_activeBuffer, _request.response);
-                            }
+        try {
+            _audioSource.stop(scheduledTime);
+        } catch (e) {}
 
-                            _context.decodeAudioData(_activeBuffer, function(buf) {
-                                console.log("AudioData decoded!");
-                                _audioBuffer = buf;
-                                _play();
-                            });
+        _audioSource = _context.createBufferSource();
+        _audioSource.buffer = _audioBuffer;
+        _audioSource.connect(_analyser);
+        _audioSource.connect(_context.destination);
+        _audioSource.playbackRate.value = 1;
 
-                            _totalChunksLoaded++;
-                        };
+        console.log("audiobuffer duration:", _audioBuffer.duration);
+        console.log("buffer start time", scheduledTime - 0.005);
+        console.log("offset by", currentTime);
 
-                        let _loadChunk = function(index) {
-                            console.log("Loading chunk ", _files[index], " ...");
-                            //_request.open('GET', 'chunks/' + _files[index], true);
-                            //_request.send();
-                        };
-
-                        this.init = function() {
-                            console.log("MP3ChunksPlayer initialized!");
-
-                            //_request.responseType = 'arraybuffer';
-                            //_request.addEventListener('load', _onChunkLoaded, false);
-
-                            _loadChunk(_totalChunksLoaded);
-
-                            return this;
-                        };
-                        if (i < 10) {
-                            console.log("Finished iteration", i);
-                            i++;
-                            push();
-                        }
-                        //push();
-                    }).catch((err) => {
-                        console.error("Error - inner");
-                        console.error(err);
-                    });
-                };
-                push();
-            }
-        });
-        return new Response(stream, {header: {"Content-Type": "text/html"}});
-    }).catch((err) => {
-        console.error("Error - outer");
-        console.error(err);
-    });
+        _audioSource.start(scheduledTime - 0.005, currentTime);
+    };
 };
+module.exports = {StreamingChunksPlayer};

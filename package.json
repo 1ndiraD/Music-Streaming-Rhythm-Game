@@ -4,5 +4,9 @@
     "audio-context": "^1.0.3",
     "audio-generator": "^2.1.2",
     "web-audio-stream": "^3.0.1"
+  },
+  "devDependencies": {
+    "esmify": "^2.1.1",
+    "watchify": "^4.0.0"
   }
 }

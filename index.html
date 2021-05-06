@@ -1,25 +1,26 @@
 <html lang="en-US">
-<head>
-  <meta charset="UTF-8">
-  <title>Playing Chunked Music</title>
-  <h1>Playing Chunked Music</h1>
-</head>
-<body>
-  <script type="text/javascript" src="neweventtarget.js"></script>
-  <script type="text/javascript" src="streamchunksplayer.js"></script>
-  <script type="text/javascript">
+    <head>
+        <meta charset="UTF-8">
+        <title>Streaming Chunked Music</title>
+        <h1>Streaming Chunked Music</h1>
+    </head>
+    <body>
+        <script type="text/javascript" src="neweventtarget.js"></script>
+        <script src="streamchunksbundle.js"></script>
+        <script type="text/javascript">
 
-    if (!window.requestAnimationFrame) {
-      document.body.innerHTML ='<div id="error">I\'m sorry but you need Chrome 24+</div>';
-    } else {
+            if (!window.requestAnimationFrame) {
+                document.body.innerHTML ='<div id="error">I\'m sorry but you need Chrome 24+</div>';
+            }
+            else {
 
-      // On window load initialize the class
-      window.addEventListener('load', function() {
+                // On window load initialize the class
+                window.addEventListener('load', function() {
 
-        let pl = new MP3ChunksPlayer().init();
+                    let pl = new game.StreamingChunksPlayer().init();
 
-      }, false);
-    }
-  </script>
-</body>
+                }, false);
+            }
+        </script>
+    </body>
 </html>
