@@ -1,19 +1,22 @@
+const clubber = require("clubber");
+const work = require("webworkify");
+
 console.log("are gummy");
 
 let StreamingChunksPlayer = function() {
 
     EventTarget.call(this);
 
-    let _activeBuffer;
-    let _totalChunksLoaded;
     let _context;
     let _audioBuffer;
     let _audioSource;
     let _analyser;
+    let analyzed;
 
     const url = "https://streams.wtju.net:8443/wtju-opus-256.ogg";
 
-    const bufferWorker = new Worker("bufferWorker.js");
+    const bufferWorker = work(require("./bufferWorker.js"));
+    const analyzerWorker = work(require("./analyzerWorker.js"));
 
     this.init = function() {
         bufferWorker.postMessage(url);
@@ -41,6 +44,13 @@ let StreamingChunksPlayer = function() {
                 _audioBuffer = buf;
                 console.log("audio:", _audioBuffer);
                 console.log(_audioBuffer.getChannelData(0));
+
+                analyzerWorker.postMessage(_audioBuffer);
+                analyzerWorker.onmessage = function(event) {
+                    analyzed = event.data;
+                    console.log("analysis:", analyzed);
+                };
+
                 _play();
             });
         }
